@@ -1,0 +1,12 @@
+[[permission]]
+identifier = "allow-market-commands"
+description = "Allow Market Assistant product, sale, and return stub commands"
+commands.allow = [
+  "products_list",
+  "products_get_by_barcode",
+  "products_create",
+  "products_update",
+  "products_deactivate",
+  "sales_checkout",
+  "returns_create"
+]
