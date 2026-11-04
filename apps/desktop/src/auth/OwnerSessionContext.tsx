@@ -7,7 +7,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { api } from "../lib/api";
+import { api, isAuthError } from "../lib/api";
 import type { SessionStatus } from "../types";
 import { LoginDialog } from "../components/LoginDialog";
 
@@ -19,6 +19,11 @@ type OwnerSessionContextValue = {
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   openLogin: (onSuccess?: () => void) => void;
+  /** Run an owner-only call; if the session is missing or expired, open login and retry after it. */
+  requireOwner: (
+    action: () => Promise<void>,
+    onError?: (err: unknown) => void,
+  ) => Promise<void>;
 };
 
 const OwnerSessionContext = createContext<OwnerSessionContextValue | null>(
@@ -74,6 +79,27 @@ export function OwnerSessionProvider({ children }: { children: ReactNode }) {
     setLoginOpen(true);
   }, []);
 
+  const requireOwner = useCallback(
+    async (action: () => Promise<void>, onError?: (err: unknown) => void) => {
+      const report = (err: unknown) => {
+        if (onError) onError(err);
+        else throw err;
+      };
+      try {
+        await action();
+      } catch (err) {
+        if (!isAuthError(err)) return report(err);
+        await refresh();
+        openLogin(() => {
+          action().catch((retryErr) => {
+            if (!isAuthError(retryErr)) onError?.(retryErr);
+          });
+        });
+      }
+    },
+    [refresh, openLogin],
+  );
+
   const value = useMemo(
     () => ({
       loggedIn: status.logged_in,
@@ -83,8 +109,9 @@ export function OwnerSessionProvider({ children }: { children: ReactNode }) {
       login,
       logout,
       openLogin,
+      requireOwner,
     }),
-    [status, refresh, login, logout, openLogin],
+    [status, refresh, login, logout, openLogin, requireOwner],
   );
 
   return (

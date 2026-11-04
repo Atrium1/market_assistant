@@ -6,7 +6,8 @@ Küçük marketler için Windows masaüstü uygulaması: barkod ile fiyat bakma,
 
 ## Özellikler (V1)
 
-- **Kasa:** Satış / Fiyat sor / İade (placeholder) — giriş gerekmez
+- **Kasa:** Satış / Fiyat sor / İade (placeholder) — giriş gerekmez. Ödeme **Nakit (F8)** veya **Kart (F9)**; para üstü hesabı; üstte "Bugün: ₺X · N satış"
+- **Raporlar:** gün sonu kasa raporu, satış geçmişi, satış iptali (sahip girişi gerekir)
 - **Ürünler:** çalışanlar listeyi görür ve ad/barkod ile arar; ekle/sil/fiyat için **Düzenleme modu** + sahip girişi
 - **Toplu işlemler:** Excel/CSV’den ürün içe aktarma (önizlemeli), Excel’e dışa aktarma, boş şablon
 - **Ayarlar:** mağaza adı, dükkan kullanıcı adı/şifresi, **yedekleme / geri yükleme** (sahip oturumu gerekir)
@@ -20,6 +21,16 @@ Küçük marketler için Windows masaüstü uygulaması: barkod ile fiyat bakma,
 - Her kurulumda gömülü **fabrika (kurtarma)** hesabı vardır; dükkan şifresi unutulursa bununla giriş yapıp Ayarlar’dan yeni hesap belirlenir.
 - Dağıtımdan önce [`apps/desktop/src-tauri/src/auth/factory.rs`](apps/desktop/src-tauri/src/auth/factory.rs) içindeki `CHANGE_ME_USER` / `CHANGE_ME_PASS` değerlerini değiştirin. Gerçek sırları herkese açık repoya koymayın.
 - Fabrika hesabı tüm kopyalarda aynıdır (bilinçli kurtarma arka kapısı); sadece sizin bilmeniz gerekir.
+
+## Satış, gün sonu ve iptal
+
+- **Fiyat her zaman sistemden alınır.** Sepette ürün dururken fiyatı değiştirilirse ödeme alınmaz; sepet yeni fiyatlarla güncellenir ve değişen ürünler gösterilir. Kasiyer toplamı müşteriye tekrar söyleyip yeniden Nakit/Kart'a basar. Silinmiş ürünler sepetten çıkarılır.
+- **Fiş numarası:** her gün 1'den başlar (`04.11.2026 #0012`). Satış sonrası ekranda görünür; iptal veya soru için bu numarayı kullanın.
+- **Raporlar → Gün sonu:** seçilen günün toplamı, nakit / kart ayrımı, iptal edilenler, ortalama sepet, saatlere göre satış, en çok satan ürünler ve son 7 gün. **Kasa sayımı** kutusuna çekmecedeki nakdi yazınca fark (fazla / eksik) gösterilir; bu bilgi kaydedilmez. **Yazdır** ile çıktı alınabilir.
+- **Raporlar → Satış geçmişi:** tarih aralığı ve ödeme türüne göre liste; satıra tıklayınca ürünler görünür.
+- **Satış iptali:** satış detayında **İptal et** → neden yazılır → onay. Satış silinmez; raporlarda "iptal edilen" olarak ayrıca gösterilir ve toplamdan düşülür. Bugünden eski bir satış iptal edilirse o günün raporu değişir; uygulama bunun için uyarır.
+- Çalışanlar Kasa'da sadece bugünün toplamını görür; rapor, geçmiş ve iptal sahip girişi ister.
+- **Bilgisayarın tarih ve saati doğru olmalı.** Satışın hangi güne yazılacağı satış anındaki bilgisayar saatine göre belirlenir; saat yanlışsa satış yanlış güne düşer.
 
 ## Yedekleme
 
@@ -107,7 +118,7 @@ docs/api-contract.md   Komut ↔ REST sözleşmesi
 ## Sonraki adımlar (plan)
 
 - Stok düşümü (`inventory` tablosu hazır)
-- Günlük satış / kasa raporu
-- Tam iade akışı
+- Tam iade akışı (rapordaki `returns_total` alanı hazır)
+- Gün sonu kapanışını / kasa sayımını kaydetme
 - Müşteri ikinci ekran
 - Mobil istemci + isteğe bağlı bulut Postgres

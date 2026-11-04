@@ -697,18 +697,277 @@ a {
   border-top: 1px solid var(--line);
 }
 
-.cart-actions .checkout {
-  min-width: 160px;
+.btn.pay {
+  min-width: 150px;
+  padding: 0.85rem 1.2rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+  border: none;
+}
+
+.btn.pay-cash {
+  background: var(--sale);
+}
+
+.btn.pay-card {
+  background: var(--price);
+}
+
+.btn.pay kbd {
+  margin-left: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.8;
+  font-family: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  padding: 0 0.25rem;
+}
+
+.today-chip {
+  align-self: center;
+  margin-left: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.95rem;
+}
+
+.cart-notice {
+  margin: 0;
+  padding: 0.5rem 0.75rem 0.5rem 1.75rem;
+  background: var(--return-soft);
+  color: var(--return);
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.tender-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0;
+}
+
+.tender-row input {
+  width: 180px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+  font-size: 1.05rem;
+  background: #fff;
+}
+
+.change-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--sale);
+}
+
+.change-value.short {
+  color: var(--danger);
+}
+
+/* Reports */
+.reports-page,
+.report-view {
+  display: grid;
+  gap: 1rem;
+}
+
+.report-view h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.report-title {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.report-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: end;
+}
+
+.report-toolbar label {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.report-toolbar label.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--ink);
+  padding-bottom: 0.55rem;
+}
+
+.report-toolbar input[type="date"],
+.report-toolbar select {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  background: #fff;
+  font: inherit;
+  color: var(--ink);
+}
+
+.report-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.report-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.report-card span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.report-card strong {
+  font-size: 1.35rem;
+}
+
+.report-card.total {
+  background: #17150f;
+  color: #fff;
+}
+
+.report-card.total span {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.report-card.cash strong {
+  color: var(--sale);
+}
+
+.report-card.card strong {
+  color: var(--price);
+}
+
+.report-card.voided strong {
+  color: var(--danger);
+}
+
+.report-tops {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.hour-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 140px;
+}
+
+.hour-bar {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+}
+
+.hour-bar-fill {
+  width: 100%;
+  min-height: 2px;
+  background: var(--price);
+  border-radius: 4px 4px 0 0;
+}
+
+.hour-bar span {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.data-table td.strong,
+.data-table td.amount {
+  font-weight: 700;
+}
+
+.data-table tr.clickable {
+  cursor: pointer;
+}
+
+.data-table tr.clickable:hover td {
+  background: #f7f4ee;
+}
+
+.data-table tr.voided-row td {
+  color: var(--muted);
+}
+
+.data-table tr.voided-row td.amount {
+  text-decoration: line-through;
+}
+
+.void-tag {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.form-row textarea {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  background: #fff;
+  font: inherit;
+  resize: vertical;
+}
+
+@media print {
+  .no-print,
+  .modal-backdrop {
+    display: none !important;
+  }
+
+  body,
+  .app-shell,
+  .app-main {
+    background: #fff;
+    padding: 0;
+    margin: 0;
+  }
+
+  .card-panel,
+  .report-card {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  .report-card.total {
+    background: #fff;
+    color: #000;
+  }
+
+  .report-card.total span {
+    color: #555;
+  }
 }
 
 @media (max-width: 900px) {
-  .products-page {
+  .products-page.is-editing .products-layout {
     grid-template-columns: 1fr;
-  }
-
-  .products-page .table-wrap {
-    grid-column: 1;
-    grid-row: auto;
   }
 
   .cart-line {

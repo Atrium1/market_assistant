@@ -287,7 +287,10 @@ mod tests {
             conn.execute_batch(
                 "CREATE TABLE schema_migrations (version TEXT PRIMARY KEY, applied_at TEXT NOT NULL);
                  INSERT INTO schema_migrations VALUES ('001_init', '2026-01-01');
-                 INSERT INTO stores VALUES ('store_default', 'Eski Market', '2026-01-01');",
+                 INSERT INTO stores VALUES ('store_default', 'Eski Market', '2026-01-01');
+                 INSERT INTO sales (id, store_id, total_cents, status, paid_at, created_at) VALUES
+                   ('s1', 'store_default', 1500, 'completed', '2026-03-10T08:00:00+00:00', 'x'),
+                   ('s2', 'store_default', 700, 'completed', '2026-03-10T09:00:00+00:00', 'x');",
             )
             .unwrap();
         }
@@ -296,10 +299,28 @@ mod tests {
         let mut conn = state.conn.lock();
         let summary = restore_from(&mut conn, &old, &dir.path().join("backups")).unwrap();
         assert!(summary.schema_versions.contains(&"002_owner_settings".to_string()));
+        assert!(summary.schema_versions.contains(&"003_sales_reporting".to_string()));
+        assert_eq!(summary.sale_count, 2);
         let has_settings: i64 = conn
             .query_row("SELECT COUNT(*) FROM owner_settings", [], |r| r.get(0))
             .unwrap();
         assert_eq!(has_settings, 1);
+
+        let expected_day = chrono::DateTime::parse_from_rfc3339("2026-03-10T09:00:00+00:00")
+            .unwrap()
+            .with_timezone(&chrono::Local)
+            .format("%Y-%m-%d")
+            .to_string();
+        let (method, day, receipt): (String, String, i64) = conn
+            .query_row(
+                "SELECT payment_method, business_day, receipt_no FROM sales WHERE id = 's2'",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!(method, "cash");
+        assert_eq!(day, expected_day);
+        assert_eq!(receipt, 2);
     }
 
     #[test]

@@ -15,6 +15,10 @@ const MIGRATIONS: &[Migration] = &[
         version: "002_owner_settings",
         sql: include_str!("migrations/002_owner_settings.sql"),
     },
+    Migration {
+        version: "003_sales_reporting",
+        sql: include_str!("migrations/003_sales_reporting.sql"),
+    },
 ];
 
 pub fn known_versions() -> Vec<&'static str> {

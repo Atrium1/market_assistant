@@ -1,15 +1,35 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { api } from "../lib/api";
-import { formatTry } from "../lib/money";
+import { api, cartChangedDetails, errorMessage } from "../lib/api";
+import { PAYMENT_LABEL, formatReceipt } from "../lib/dates";
+import { formatTry, parsePriceToCents } from "../lib/money";
 import { useBarcodeFocus } from "../hooks/useBarcodeFocus";
-import type { CartLine, Product, RegisterMode } from "../types";
+import type {
+  CartChangedDetails,
+  CartLine,
+  PaymentMethod,
+  Product,
+  RegisterMode,
+  TodaySummary,
+} from "../types";
 
 const MODE_LABEL: Record<RegisterMode, string> = {
   sale: "Satış",
   price_check: "Fiyat sor",
   return: "İade",
 };
+
+const PAY_KEYS: Record<string, PaymentMethod> = { F8: "cash", F9: "card" };
+
+function cartChangeLines(d: CartChangedDetails): string[] {
+  return [
+    ...d.changed.map(
+      (c) =>
+        `${c.name}: ${formatTry(c.old_unit_price_cents)} → ${formatTry(c.new_unit_price_cents)}`,
+    ),
+    ...d.removed.map((r) => `${r.name ?? "Bilinmeyen ürün"}: artık satışta değil, sepetten çıkarıldı`),
+  ];
+}
 
 export function RegisterPage() {
   const [mode, setMode] = useState<RegisterMode>("sale");
@@ -19,6 +39,9 @@ export function RegisterPage() {
   const [flash, setFlash] = useState<{ kind: "ok" | "error" | "info"; text: string } | null>(
     null,
   );
+  const [cartNotice, setCartNotice] = useState<string[]>([]);
+  const [tendered, setTendered] = useState("");
+  const [today, setToday] = useState<TodaySummary | null>(null);
   const [busy, setBusy] = useState(false);
   const { ref: barcodeRef, focusBarcode } = useBarcodeFocus(true);
 
@@ -26,6 +49,24 @@ export function RegisterPage() {
     () => cart.reduce((sum, line) => sum + line.unit_price_cents * line.qty, 0),
     [cart],
   );
+
+  const tenderedCents = parsePriceToCents(tendered);
+  const changeCents =
+    tenderedCents !== null && cart.length > 0 ? tenderedCents - totalCents : null;
+
+  const loadToday = useCallback(async () => {
+    try {
+      setToday(await api.reportsTodaySummary());
+    } catch {
+      setToday(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadToday();
+    const id = window.setInterval(() => void loadToday(), 60_000);
+    return () => window.clearInterval(id);
+  }, [loadToday]);
 
   function showFlash(kind: "ok" | "error" | "info", text: string) {
     setFlash({ kind, text });
@@ -47,6 +88,7 @@ export function RegisterPage() {
   }
 
   function addToCart(product: Product) {
+    setCartNotice([]);
     setCart((prev) => {
       const idx = prev.findIndex((l) => l.product_id === product.id);
       if (idx >= 0) {
@@ -91,8 +133,7 @@ export function RegisterPage() {
       }
     } catch (err) {
       setPriceHit(null);
-      const msg = err instanceof Error ? err.message : "Ürün bulunamadı";
-      showFlash("error", msg);
+      showFlash("error", errorMessage(err, "Ürün bulunamadı"));
     } finally {
       setBusy(false);
       focusBarcode();
@@ -135,40 +176,66 @@ export function RegisterPage() {
     }
     setCart([]);
     setPriceHit(null);
+    setTendered("");
+    setCartNotice([]);
     showFlash("info", "Sepet iptal edildi");
     focusBarcode();
   }
 
-  async function checkout() {
-    if (cart.length === 0) return;
+  async function checkout(method: PaymentMethod) {
+    if (cart.length === 0 || busy || mode === "return") return;
     setBusy(true);
     setFlash(null);
+    setCartNotice([]);
     try {
       const result = await api.salesCheckout(
         cart.map((l) => ({
           product_id: l.product_id,
-          barcode: l.barcode,
-          name: l.name,
-          unit_price_cents: l.unit_price_cents,
           qty: l.qty,
+          expected_unit_price_cents: l.unit_price_cents,
         })),
+        method,
       );
+      const { sale } = result;
+      let text = `Satış ${formatReceipt(sale.receipt_no)} · ${PAYMENT_LABEL[sale.payment_method]} · ${formatTry(sale.total_cents)}`;
+      if (method === "cash" && changeCents !== null && changeCents > 0) {
+        text += ` · Para üstü ${formatTry(changeCents)}`;
+      }
       setCart([]);
       setPriceHit(null);
-      showFlash(
-        "ok",
-        `Satış tamamlandı — ${formatTry(result.sale.total_cents)}`,
-      );
+      setTendered("");
+      showFlash("ok", text);
+      void loadToday();
     } catch (err) {
-      showFlash(
-        "error",
-        err instanceof Error ? err.message : "Satış kaydedilemedi",
-      );
+      const changed = cartChangedDetails(err);
+      if (changed) {
+        setCart(changed.current);
+        setCartNotice(cartChangeLines(changed));
+        showFlash("error", errorMessage(err, "Sepet güncellendi"));
+      } else {
+        showFlash("error", errorMessage(err, "Satış kaydedilemedi"));
+      }
     } finally {
       setBusy(false);
       focusBarcode();
     }
   }
+
+  const checkoutRef = useRef(checkout);
+  checkoutRef.current = checkout;
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const method = PAY_KEYS[e.key];
+      if (!method) return;
+      e.preventDefault();
+      void checkoutRef.current(method);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const canPay = cart.length > 0 && !busy && mode !== "return";
 
   return (
     <div className={`page register-page mode-${mode}`}>
@@ -187,6 +254,11 @@ export function RegisterPage() {
             </button>
           ))}
         </div>
+        {today && (
+          <div className="today-chip" title="Bugünkü satışlar (iptaller hariç)">
+            Bugün: <strong>{formatTry(today.net_total_cents)}</strong> · {today.sale_count} satış
+          </div>
+        )}
         <div className="total-panel" aria-live="polite">
           <span className="total-label">Toplam</span>
           <span className="total-value">{formatTry(totalCents)}</span>
@@ -216,6 +288,13 @@ export function RegisterPage() {
           </form>
 
           {flash && <p className={`flash ${flash.kind}`}>{flash.text}</p>}
+          {cartNotice.length > 0 && (
+            <ul className="cart-notice">
+              {cartNotice.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          )}
           {flash?.kind === "error" &&
             flash.text.includes("bulunamadı") && (
               <p className="hint">
@@ -289,6 +368,35 @@ export function RegisterPage() {
             )}
           </ul>
 
+          {mode === "sale" && cart.length > 0 && (
+            <div className="tender-row">
+              <label htmlFor="tendered">Alınan (₺)</label>
+              <input
+                id="tendered"
+                value={tendered}
+                onChange={(e) => setTendered(e.target.value.replace(/[^\d.,]/g, ""))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === "Escape") {
+                    e.preventDefault();
+                    focusBarcode();
+                  }
+                }}
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder="Nakit için isteğe bağlı"
+              />
+              <span
+                className={`change-value${changeCents !== null && changeCents < 0 ? " short" : ""}`}
+              >
+                {changeCents === null
+                  ? ""
+                  : changeCents >= 0
+                    ? `Para üstü: ${formatTry(changeCents)}`
+                    : `Eksik: ${formatTry(-changeCents)}`}
+              </span>
+            </div>
+          )}
+
           <div className="cart-actions">
             <button
               type="button"
@@ -308,11 +416,19 @@ export function RegisterPage() {
             </button>
             <button
               type="button"
-              className="btn primary checkout"
-              onClick={() => void checkout()}
-              disabled={cart.length === 0 || busy || mode === "return"}
+              className="btn pay pay-cash"
+              onClick={() => void checkout("cash")}
+              disabled={!canPay}
             >
-              Satışı tamamla
+              Nakit <kbd>F8</kbd>
+            </button>
+            <button
+              type="button"
+              className="btn pay pay-card"
+              onClick={() => void checkout("card")}
+              disabled={!canPay}
+            >
+              Kart <kbd>F9</kbd>
             </button>
           </div>
         </section>

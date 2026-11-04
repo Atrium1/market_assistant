@@ -1,10 +1,5 @@
 import { open, save } from "@tauri-apps/plugin-dialog";
-
-export function todayStamp(): string {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
+import { dayKey as todayStamp } from "./dates";
 
 const DB_FILTER = [{ name: "Market Asistanı yedeği", extensions: ["db"] }];
 const XLSX_FILTER = [{ name: "Excel", extensions: ["xlsx"] }];

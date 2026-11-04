@@ -2,6 +2,7 @@ import { NavLink, Route, Routes } from "react-router-dom";
 import { useOwnerSession } from "./auth/OwnerSessionContext";
 import { ProductsPage } from "./pages/ProductsPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { ReportsPage } from "./pages/ReportsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import "./App.css";
 
@@ -10,7 +11,7 @@ function App() {
 
   return (
     <div className="app-shell">
-      <nav className="app-nav">
+      <nav className="app-nav no-print">
         <div className="brand">Market Asistanı</div>
         <div className="nav-links">
           <NavLink to="/" end className={({ isActive }) => (isActive ? "active" : "")}>
@@ -21,6 +22,12 @@ function App() {
             className={({ isActive }) => (isActive ? "active" : "")}
           >
             Ürünler
+          </NavLink>
+          <NavLink
+            to="/raporlar"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
+            Raporlar
           </NavLink>
           <NavLink
             to="/ayarlar"
@@ -52,6 +59,7 @@ function App() {
         <Routes>
           <Route path="/" element={<RegisterPage />} />
           <Route path="/urunler" element={<ProductsPage />} />
+          <Route path="/raporlar" element={<ReportsPage />} />
           <Route path="/ayarlar" element={<SettingsPage />} />
         </Routes>
       </main>

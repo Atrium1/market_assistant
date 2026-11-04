@@ -43,13 +43,9 @@ pub fn require_owner(state: &AppState) -> AppResult<()> {
         }
         Some(_) => {
             *guard = None;
-            Err(AppError::Message(
-                "Oturum süresi doldu. Lütfen tekrar giriş yapın.".into(),
-            ))
+            Err(AppError::SessionExpired)
         }
-        None => Err(AppError::Message(
-            "Bu işlem için sahip girişi gerekli.".into(),
-        )),
+        None => Err(AppError::OwnerRequired),
     }
 }
 
@@ -59,4 +55,35 @@ pub fn clear_session(state: &AppState) {
 
 pub fn set_session(state: &AppState, session: OwnerSession) {
     *state.owner_session.lock() = Some(session);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::open_and_migrate;
+    use crate::domain::PaymentMethod;
+    use crate::repos::SaleRepo;
+    use crate::repos::sale::tests::{add_product, sell, tr};
+
+    #[test]
+    fn owner_gate_codes_and_void_flow() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = open_and_migrate(dir.path().join("live.db")).unwrap();
+
+        let err = require_owner(&state).unwrap_err();
+        assert_eq!(err.code(), "owner_required");
+
+        let mut stale = OwnerSession::new(false, "magaza".into());
+        stale.last_active_at = Utc::now() - Duration::minutes(SESSION_IDLE_MINUTES + 1);
+        set_session(&state, stale);
+        assert_eq!(require_owner(&state).unwrap_err().code(), "session_expired");
+        assert!(state.owner_session.lock().is_none());
+
+        set_session(&state, OwnerSession::new(false, "magaza".into()));
+        require_owner(&state).unwrap();
+        let conn = state.conn.lock();
+        let p = add_product(&conn, "111", 100);
+        let sale = sell(&conn, &[(&p, 1, None)], PaymentMethod::Cash, tr(2026, 11, 4, 9, 0)).sale;
+        SaleRepo::void(&conn, &state.store_id, &sale.id, "test", Utc::now()).unwrap();
+    }
 }

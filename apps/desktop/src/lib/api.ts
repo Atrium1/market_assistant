@@ -2,26 +2,69 @@ import { invoke } from "@tauri-apps/api/core";
 import type {
   BackupInfo,
   BackupSummary,
+  CartChangedDetails,
   CheckoutItemInput,
   CheckoutResult,
+  DailyReport,
+  DayRow,
   ImportPreview,
   ImportResult,
+  PaymentMethod,
   Product,
+  Sale,
+  SaleDetail,
+  SalesListQuery,
+  SalesPage,
   SessionStatus,
   SettingsPublic,
+  TodaySummary,
 } from "../types";
 
-function asErrorMessage(error: unknown): string {
-  if (typeof error === "string") return error;
-  if (error instanceof Error) return error.message;
-  return "Beklenmeyen bir hata oluştu";
+/** Rust commands reject with `{ code, message, details }`; `message` is Turkish UI text. */
+export class ApiError extends Error {
+  readonly code: string;
+  readonly details: unknown;
+
+  constructor(code: string, message: string, details: unknown = null) {
+    super(message);
+    this.name = "ApiError";
+    this.code = code;
+    this.details = details;
+  }
+}
+
+function toApiError(error: unknown): ApiError {
+  if (error && typeof error === "object" && "code" in error && "message" in error) {
+    const e = error as { code: unknown; message: unknown; details?: unknown };
+    return new ApiError(String(e.code), String(e.message), e.details ?? null);
+  }
+  if (typeof error === "string") return new ApiError("message", error);
+  if (error instanceof Error) return new ApiError("message", error.message);
+  return new ApiError("unknown", "Beklenmeyen bir hata oluştu");
+}
+
+export function isAuthError(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    (error.code === "owner_required" || error.code === "session_expired")
+  );
+}
+
+export function cartChangedDetails(error: unknown): CartChangedDetails | null {
+  return error instanceof ApiError && error.code === "cart_changed"
+    ? (error.details as CartChangedDetails)
+    : null;
+}
+
+export function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
 }
 
 async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   try {
     return await invoke<T>(cmd, args);
   } catch (error) {
-    throw new Error(asErrorMessage(error));
+    throw toApiError(error);
   }
 }
 
@@ -47,8 +90,22 @@ export const api = {
   productsDeactivate: (id: string) =>
     call<void>("products_deactivate", { id }),
 
-  salesCheckout: (items: CheckoutItemInput[]) =>
-    call<CheckoutResult>("sales_checkout", { input: { items } }),
+  salesCheckout: (items: CheckoutItemInput[], payment_method: PaymentMethod) =>
+    call<CheckoutResult>("sales_checkout", { input: { items, payment_method } }),
+
+  salesList: (query: SalesListQuery) => call<SalesPage>("sales_list", { query }),
+
+  salesGet: (id: string) => call<SaleDetail>("sales_get", { id }),
+
+  salesVoid: (id: string, reason: string) =>
+    call<Sale>("sales_void", { id, reason }),
+
+  reportsDaily: (date: string) => call<DailyReport>("reports_daily", { date }),
+
+  reportsRange: (from: string, to: string) =>
+    call<DayRow[]>("reports_range", { from, to }),
+
+  reportsTodaySummary: () => call<TodaySummary>("reports_today_summary"),
 
   returnsCreate: () => call<void>("returns_create"),
 

@@ -117,6 +117,22 @@ impl ProductRepo {
         .map_err(AppError::from)
     }
 
+    pub fn get_active_by_id_in_store(
+        conn: &Connection,
+        store_id: &str,
+        id: &str,
+    ) -> AppResult<Option<Product>> {
+        conn.query_row(
+            "SELECT id, store_id, barcode, name, price_cents, is_active, created_at, updated_at
+             FROM products
+             WHERE id = ?1 AND store_id = ?2 AND is_active = 1",
+            params![id, store_id],
+            map_product,
+        )
+        .optional()
+        .map_err(AppError::from)
+    }
+
     pub fn create(
         conn: &Connection,
         store_id: &str,
