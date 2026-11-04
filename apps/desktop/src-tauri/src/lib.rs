@@ -1,3 +1,4 @@
+mod auth;
 mod commands;
 mod db;
 mod domain;
@@ -28,6 +29,12 @@ pub fn run() {
             commands::products_deactivate,
             commands::sales_checkout,
             commands::returns_create,
+            commands::auth_login,
+            commands::auth_logout,
+            commands::auth_session_status,
+            commands::settings_get,
+            commands::settings_set_store_name,
+            commands::settings_set_owner_credentials,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

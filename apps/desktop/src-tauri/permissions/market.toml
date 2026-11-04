@@ -1,6 +1,6 @@
 [[permission]]
 identifier = "allow-market-commands"
-description = "Allow Market Assistant product, sale, and return stub commands"
+description = "Allow Market Assistant product, sale, auth, settings, and return stub commands"
 commands.allow = [
   "products_list",
   "products_get_by_barcode",
@@ -8,5 +8,11 @@ commands.allow = [
   "products_update",
   "products_deactivate",
   "sales_checkout",
-  "returns_create"
+  "returns_create",
+  "auth_login",
+  "auth_logout",
+  "auth_session_status",
+  "settings_get",
+  "settings_set_store_name",
+  "settings_set_owner_credentials"
 ]

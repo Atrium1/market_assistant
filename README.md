@@ -4,13 +4,21 @@ Küçük marketler için Windows masaüstü uygulaması: barkod ile fiyat bakma,
 
 Çalışanların kod çalıştırmasına gerek yoktur; geliştirme bilgisayarında bir kez kurulur, sonra `.msi` / NSIS kurulum dosyası ile dağıtılır.
 
-## Özellikler (V1 iskelet)
+## Özellikler (V1)
 
-- **Ürünler:** barkod, ad, fiyat (kuruş olarak saklanır)
-- **Kasa:** Satış / Fiyat sor / İade (placeholder)
-- Sepet: satır sil, adet, sonunu sil, sepeti iptal, satışı tamamla
+- **Kasa:** Satış / Fiyat sor / İade (placeholder) — giriş gerekmez
+- **Ürünler:** çalışanlar listeyi görür; ekle/sil/fiyat için **Düzenleme modu** + sahip girişi
+- **Ayarlar:** mağaza adı ve dükkan kullanıcı adı/şifresi (sahip oturumu gerekir)
 - Yerel **SQLite** + migration’lar
-- Tauri komutları ileride mobil/HTTP API ile aynı sözleşmeye map edilir → [`docs/api-contract.md`](docs/api-contract.md)
+- API sözleşmesi → [`docs/api-contract.md`](docs/api-contract.md)
+
+## Sahip girişi ve fabrika kurtarma
+
+- Kasa her zaman açıktır (çalışan modu).
+- Ürün değiştirme / Ayarlar için kullanıcı adı + şifre gerekir.
+- Her kurulumda gömülü **fabrika (kurtarma)** hesabı vardır; dükkan şifresi unutulursa bununla giriş yapıp Ayarlar’dan yeni hesap belirlenir.
+- Dağıtımdan önce [`apps/desktop/src-tauri/src/auth/factory.rs`](apps/desktop/src-tauri/src/auth/factory.rs) içindeki `CHANGE_ME_USER` / `CHANGE_ME_PASS` değerlerini değiştirin. Gerçek sırları herkese açık repoya koymayın.
+- Fabrika hesabı tüm kopyalarda aynıdır (bilinçli kurtarma arka kapısı); sadece sizin bilmeniz gerekir.
 
 ## Geliştirme (geliştirici)
 

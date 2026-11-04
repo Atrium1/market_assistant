@@ -60,6 +60,7 @@ a {
   padding: 0.75rem 1.25rem;
   background: #17150f;
   color: #f7f3ea;
+  flex-wrap: wrap;
 }
 
 .brand {
@@ -71,6 +72,34 @@ a {
 .nav-links {
   display: flex;
   gap: 0.5rem;
+  flex: 1;
+  justify-content: center;
+}
+
+.nav-session {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 8rem;
+  justify-content: flex-end;
+}
+
+.session-pill {
+  background: rgba(255, 255, 255, 0.12);
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+.session-muted {
+  font-size: 0.85rem;
+  color: #a8a193;
+}
+
+.nav-logout {
+  background: transparent;
+  color: #f7f3ea;
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .nav-links a {
@@ -188,13 +217,89 @@ a {
   align-items: start;
 }
 
-.products-page .page-header {
+.products-page .page-header,
+.products-page .products-flash {
   grid-column: 1 / -1;
 }
 
+.products-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.products-header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.panel-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.scan-price-panel,
 .product-form {
   display: grid;
   gap: 0.75rem;
+}
+
+.products-page.is-editing .table-wrap {
+  grid-column: 2;
+  grid-row: 2 / span 4;
+}
+
+.products-page:not(.is-editing) .table-wrap {
+  grid-column: 1 / -1;
+}
+
+/* Modal login */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 26, 22, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 50;
+  padding: 1rem;
+}
+
+.modal-card {
+  width: min(420px, 100%);
+  background: var(--surface);
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.modal-card h2 {
+  margin: 0;
+}
+
+.settings-page {
+  display: grid;
+  gap: 1rem;
+  max-width: 520px;
+}
+
+.settings-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.settings-locked {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+}
+
+.note-factory {
+  font-size: 0.9rem;
 }
 
 .form-row {
@@ -450,6 +555,11 @@ a {
 @media (max-width: 900px) {
   .products-page {
     grid-template-columns: 1fr;
+  }
+
+  .products-page .table-wrap {
+    grid-column: 1;
+    grid-row: auto;
   }
 
   .cart-line {

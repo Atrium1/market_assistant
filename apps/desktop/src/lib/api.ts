@@ -3,6 +3,8 @@ import type {
   CheckoutItemInput,
   CheckoutResult,
   Product,
+  SessionStatus,
+  SettingsPublic,
 } from "../types";
 
 function asErrorMessage(error: unknown): string {
@@ -45,4 +47,24 @@ export const api = {
     call<CheckoutResult>("sales_checkout", { input: { items } }),
 
   returnsCreate: () => call<void>("returns_create"),
+
+  authLogin: (username: string, password: string) =>
+    call<SessionStatus>("auth_login", { input: { username, password } }),
+
+  authLogout: () => call<void>("auth_logout"),
+
+  authSessionStatus: () => call<SessionStatus>("auth_session_status"),
+
+  settingsGet: () => call<SettingsPublic>("settings_get"),
+
+  settingsSetStoreName: (store_display_name: string) =>
+    call<void>("settings_set_store_name", {
+      input: { store_display_name },
+    }),
+
+  settingsSetOwnerCredentials: (input: {
+    username: string;
+    password: string;
+    password_confirm: string;
+  }) => call<void>("settings_set_owner_credentials", { input }),
 };

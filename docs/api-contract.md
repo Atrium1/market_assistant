@@ -4,15 +4,47 @@ Desktop V1 uses Tauri `invoke` commands. A future HTTP/mobile API should mirror 
 
 Money is always integer **kuruş** (`price_cents`, `total_cents`, …). UI formats as `₺X,XX`.
 
-## Products
+## Auth
+
+Owner session is **in-memory** (cleared on app restart). Idle timeout: 15 minutes. Mutating product/settings calls refresh activity.
+
+Login succeeds if credentials match **shop owner** (DB hash) **OR** embedded **factory default** (recovery backdoor; not in DB; not editable in UI).
+
+| Command | Future REST | Auth | Notes |
+|---------|-------------|------|--------|
+| `auth_login` | `POST /auth/login` | public | `{ username, password }` → session status |
+| `auth_logout` | `POST /auth/logout` | public | Clears session |
+| `auth_session_status` | `GET /auth/session` | public | `{ logged_in, via_factory, username_display }` |
+
+### Session status shape
+
+```json
+{
+  "logged_in": true,
+  "via_factory": false,
+  "username_display": "magaza"
+}
+```
+
+## Settings (owner session required)
 
 | Command | Future REST | Notes |
 |---------|-------------|--------|
-| `products_list` | `GET /products` | Active products for current store |
-| `products_get_by_barcode` | `GET /products?barcode=` | 404 → not found |
-| `products_create` | `POST /products` | Body: `{ barcode, name, price_cents }` |
-| `products_update` | `PATCH /products/:id` | Body: `{ id, barcode?, name?, price_cents? }` |
-| `products_deactivate` | `DELETE /products/:id` | Soft delete (`is_active = 0`) |
+| `settings_get` | `GET /settings` | Display name, shop username, `shop_credentials_set` |
+| `settings_set_store_name` | `PATCH /settings/store-name` | `{ store_display_name }` |
+| `settings_set_owner_credentials` | `PUT /settings/credentials` | `{ username, password, password_confirm }` — no old password required while session active |
+
+Factory credentials are never returned or changeable via API.
+
+## Products
+
+| Command | Future REST | Auth | Notes |
+|---------|-------------|------|--------|
+| `products_list` | `GET /products` | public | Active products for current store |
+| `products_get_by_barcode` | `GET /products?barcode=` | public | Cashier + edit-mode scan |
+| `products_create` | `POST /products` | **owner** | Body: `{ barcode, name, price_cents }` |
+| `products_update` | `PATCH /products/:id` | **owner** | Body: `{ id, barcode?, name?, price_cents? }` |
+| `products_deactivate` | `DELETE /products/:id` | **owner** | Soft delete (`is_active = 0`); UI label **Sil** |
 
 ### Product shape
 
@@ -31,9 +63,9 @@ Money is always integer **kuruş** (`price_cents`, `total_cents`, …). UI forma
 
 ## Sales / checkout
 
-| Command | Future REST | Notes |
-|---------|-------------|--------|
-| `sales_checkout` | `POST /sales` | Persists sale + line snapshots in one transaction |
+| Command | Future REST | Auth | Notes |
+|---------|-------------|------|--------|
+| `sales_checkout` | `POST /sales` | public | Persists sale + line snapshots in one transaction |
 
 ### Checkout request
 
@@ -53,22 +85,6 @@ Money is always integer **kuruş** (`price_cents`, `total_cents`, …). UI forma
 
 Cart itself is **UI state only**. Persistence boundary is checkout.
 
-### Checkout response
-
-```json
-{
-  "sale": {
-    "id": "uuid",
-    "store_id": "store_default",
-    "total_cents": 3000,
-    "status": "completed",
-    "paid_at": "RFC3339",
-    "created_at": "RFC3339"
-  },
-  "items": [ /* sale_items with name_snapshot */ ]
-}
-```
-
 ## Price check
 
 No dedicated command. Use `products_get_by_barcode`. UI must **not** auto-add to cart in Fiyat sor mode.
@@ -85,7 +101,9 @@ Commands return a string error message suitable for Turkish UI toasts, e.g.:
 
 - `Ürün bulunamadı`
 - `Bu barkod zaten kayıtlı`
-- `Bu özellik henüz hazır değil`
+- `Kullanıcı adı veya şifre hatalı`
+- `Bu işlem için sahip girişi gerekli.`
+- `Oturum süresi doldu. Lütfen tekrar giriş yapın.`
 - `Sepet boş`
 
 ## Expansion mapping
@@ -94,5 +112,5 @@ Commands return a string error message suitable for Turkish UI toasts, e.g.:
 |---------|-------------------|
 | Stock | Adjust inside `sales_checkout`; `GET /inventory`, `POST /inventory/adjust` |
 | Daily reports | `GET /sales?from=&to=`, `GET /reports/daily` |
-| Returns | Implement `returns_create` + migration `002` |
+| Returns | Implement `returns_create` + migration |
 | Mobile | Same JSON over HTTPS + auth; Postgres behind repositories |

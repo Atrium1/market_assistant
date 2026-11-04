@@ -1,3 +1,4 @@
+use crate::auth::require_owner;
 use crate::db::AppState;
 use crate::domain::{
     CreateProductInput, Product, UpdateProductInput, validate_create,
@@ -27,6 +28,7 @@ pub fn products_create(
     state: State<'_, AppState>,
     input: CreateProductInput,
 ) -> AppResult<Product> {
+    require_owner(&state)?;
     validate_create(&input).map_err(AppError::Message)?;
     let conn = state.conn.lock();
     ProductRepo::create(&conn, &state.store_id, &input)
@@ -37,12 +39,14 @@ pub fn products_update(
     state: State<'_, AppState>,
     input: UpdateProductInput,
 ) -> AppResult<Product> {
+    require_owner(&state)?;
     let conn = state.conn.lock();
     ProductRepo::update(&conn, &state.store_id, &input)
 }
 
 #[tauri::command]
 pub fn products_deactivate(state: State<'_, AppState>, id: String) -> AppResult<()> {
+    require_owner(&state)?;
     let conn = state.conn.lock();
     ProductRepo::deactivate(&conn, &state.store_id, &id)
 }

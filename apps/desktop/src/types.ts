@@ -47,3 +47,15 @@ export type CartLine = {
 };
 
 export type RegisterMode = "sale" | "price_check" | "return";
+
+export type SessionStatus = {
+  logged_in: boolean;
+  via_factory: boolean;
+  username_display: string | null;
+};
+
+export type SettingsPublic = {
+  store_display_name: string | null;
+  shop_username: string | null;
+  shop_credentials_set: boolean;
+};
