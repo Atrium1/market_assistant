@@ -6,7 +6,7 @@ Küçük marketler için Windows masaüstü uygulaması: barkod ile fiyat bakma,
 
 ## Özellikler (V1)
 
-- **Kasa:** Satış / Fiyat sor / İade (placeholder) — giriş gerekmez. Ödeme **Nakit (F8)** veya **Kart (F9)**; para üstü hesabı; üstte "Bugün: ₺X · N satış"
+- **Kasa:** Satış / Fiyat sor / İade (placeholder) — giriş gerekmez. Ödeme **Nakit (F8)** veya **Kart (F9)**; **Ürün iptal (F4)** — okutunca sepetten 1 adet düşer; para üstü hesabı; üstte "Bugün: ₺X · N satış"
 - **Raporlar:** gün sonu kasa raporu, satış geçmişi, satış iptali (sahip girişi gerekir)
 - **Ürünler:** çalışanlar listeyi görür ve ad/barkod ile arar; ekle/sil/fiyat için **Düzenleme modu** + sahip girişi
 - **Toplu işlemler:** Excel/CSV’den ürün içe aktarma (önizlemeli), Excel’e dışa aktarma, boş şablon

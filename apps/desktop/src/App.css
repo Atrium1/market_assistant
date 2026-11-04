@@ -593,6 +593,21 @@ a {
   color: var(--return);
 }
 
+.mode-banner.mode-remove {
+  background: #fde8e8;
+  color: var(--danger);
+}
+
+.register-page.remove-armed .scan-form input {
+  border-color: var(--danger);
+}
+
+.register-page.remove-armed .scan-form input:focus {
+  outline: none;
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(161, 31, 31, 0.15);
+}
+
 .register-body {
   flex: 1;
 }
@@ -723,6 +738,27 @@ a {
   border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 4px;
   padding: 0 0.25rem;
+}
+
+.btn.remove-arm kbd {
+  margin-left: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: inherit;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 0.25rem;
+  opacity: 0.85;
+}
+
+.btn.remove-arm.active {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+
+.btn.remove-arm.active kbd {
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 .today-chip {

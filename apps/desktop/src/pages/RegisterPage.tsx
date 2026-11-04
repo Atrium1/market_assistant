@@ -43,6 +43,7 @@ export function RegisterPage() {
   const [tendered, setTendered] = useState("");
   const [today, setToday] = useState<TodaySummary | null>(null);
   const [busy, setBusy] = useState(false);
+  const [removeArmed, setRemoveArmed] = useState(false);
   const { ref: barcodeRef, focusBarcode } = useBarcodeFocus(true);
 
   const totalCents = useMemo(
@@ -53,6 +54,8 @@ export function RegisterPage() {
   const tenderedCents = parsePriceToCents(tendered);
   const changeCents =
     tenderedCents !== null && cart.length > 0 ? tenderedCents - totalCents : null;
+
+  const canArmRemove = cart.length > 0 && !busy && mode === "sale";
 
   const loadToday = useCallback(async () => {
     try {
@@ -68,8 +71,25 @@ export function RegisterPage() {
     return () => window.clearInterval(id);
   }, [loadToday]);
 
+  useEffect(() => {
+    if (cart.length === 0) setRemoveArmed(false);
+  }, [cart.length]);
+
   function showFlash(kind: "ok" | "error" | "info", text: string) {
     setFlash({ kind, text });
+  }
+
+  function disarmRemove() {
+    setRemoveArmed(false);
+  }
+
+  function toggleRemoveArm() {
+    if (!canArmRemove) return;
+    setRemoveArmed((armed) => !armed);
+    setFlash(null);
+    setPriceHit(null);
+    setBarcode("");
+    focusBarcode();
   }
 
   function trySetMode(next: RegisterMode) {
@@ -81,6 +101,7 @@ export function RegisterPage() {
       focusBarcode();
       return;
     }
+    disarmRemove();
     setMode(next);
     setPriceHit(null);
     setBarcode("");
@@ -109,9 +130,41 @@ export function RegisterPage() {
     });
   }
 
+  function removeOneByBarcode(code: string) {
+    disarmRemove();
+    setBarcode("");
+    setFlash(null);
+
+    const idx = cart.findIndex((l) => l.barcode.trim() === code);
+    if (idx < 0) {
+      showFlash("error", "Bu ürün sepette yok");
+      focusBarcode();
+      return;
+    }
+
+    const line = cart[idx];
+    if (line.qty <= 1) {
+      setCart((prev) => prev.filter((l) => l.product_id !== line.product_id));
+      showFlash("ok", `${line.name} sepetten çıkarıldı`);
+    } else {
+      setCart((prev) =>
+        prev.map((l) =>
+          l.product_id === line.product_id ? { ...l, qty: l.qty - 1 } : l,
+        ),
+      );
+      showFlash("ok", `${line.name} sepetten 1 adet çıkarıldı`);
+    }
+    focusBarcode();
+  }
+
   async function handleScan(raw: string) {
     const code = raw.trim();
     if (!code) return;
+
+    if (removeArmed) {
+      removeOneByBarcode(code);
+      return;
+    }
 
     setBarcode("");
     setFlash(null);
@@ -174,6 +227,7 @@ export function RegisterPage() {
       focusBarcode();
       return;
     }
+    disarmRemove();
     setCart([]);
     setPriceHit(null);
     setTendered("");
@@ -184,6 +238,7 @@ export function RegisterPage() {
 
   async function checkout(method: PaymentMethod) {
     if (cart.length === 0 || busy || mode === "return") return;
+    disarmRemove();
     setBusy(true);
     setFlash(null);
     setCartNotice([]);
@@ -223,9 +278,25 @@ export function RegisterPage() {
 
   const checkoutRef = useRef(checkout);
   checkoutRef.current = checkout;
+  const toggleRemoveArmRef = useRef(toggleRemoveArm);
+  toggleRemoveArmRef.current = toggleRemoveArm;
+  const removeArmedRef = useRef(removeArmed);
+  removeArmedRef.current = removeArmed;
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (e.key === "F4") {
+        e.preventDefault();
+        toggleRemoveArmRef.current();
+        return;
+      }
+      if (e.key === "Escape" && removeArmedRef.current) {
+        e.preventDefault();
+        setRemoveArmed(false);
+        setFlash({ kind: "info", text: "Ürün iptal iptal edildi" });
+        focusBarcode();
+        return;
+      }
       const method = PAY_KEYS[e.key];
       if (!method) return;
       e.preventDefault();
@@ -233,12 +304,14 @@ export function RegisterPage() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [focusBarcode]);
 
   const canPay = cart.length > 0 && !busy && mode !== "return";
 
   return (
-    <div className={`page register-page mode-${mode}`}>
+    <div
+      className={`page register-page mode-${mode}${removeArmed ? " remove-armed" : ""}`}
+    >
       <header className="register-top">
         <div className="mode-switch" role="tablist" aria-label="Kasa modu">
           {(Object.keys(MODE_LABEL) as RegisterMode[]).map((m) => (
@@ -265,11 +338,16 @@ export function RegisterPage() {
         </div>
       </header>
 
-      <div className={`mode-banner mode-${mode}`}>
-        {mode === "sale" && "Satış modu — okutulan ürün sepete eklenir"}
-        {mode === "price_check" &&
-          "Fiyat sor — sepete eklenmez; isterseniz Sepete ekle kullanın"}
-        {mode === "return" && "İade modu yakında — iade akışı henüz aktif değil"}
+      <div
+        className={`mode-banner ${removeArmed ? "mode-remove" : `mode-${mode}`}`}
+      >
+        {removeArmed
+          ? "Ürün iptal — iptal edilecek ürünü okutun (vazgeçmek için Esc)"
+          : mode === "sale"
+            ? "Satış modu — okutulan ürün sepete eklenir"
+            : mode === "price_check"
+              ? "Fiyat sor — sepete eklenmez; isterseniz Sepete ekle kullanın"
+              : "İade modu yakında — iade akışı henüz aktif değil"}
       </div>
 
       <div className="register-body">
@@ -283,11 +361,17 @@ export function RegisterPage() {
               onChange={(e) => setBarcode(e.target.value)}
               disabled={busy}
               autoComplete="off"
-              placeholder="Barkodu okutun…"
+              placeholder={
+                removeArmed ? "İptal edilecek ürünü okutun…" : "Barkodu okutun…"
+              }
             />
           </form>
 
-          {flash && <p className={`flash ${flash.kind}`}>{flash.text}</p>}
+          {flash && (
+            <p className={`flash ${flash.kind}`} aria-live="polite">
+              {flash.text}
+            </p>
+          )}
           {cartNotice.length > 0 && (
             <ul className="cart-notice">
               {cartNotice.map((line) => (
@@ -376,7 +460,12 @@ export function RegisterPage() {
                 value={tendered}
                 onChange={(e) => setTendered(e.target.value.replace(/[^\d.,]/g, ""))}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === "Escape") {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    focusBarcode();
+                  }
+                  // Escape while remove-armed is handled by the window listener
+                  if (e.key === "Escape" && !removeArmed) {
                     e.preventDefault();
                     focusBarcode();
                   }
@@ -405,6 +494,15 @@ export function RegisterPage() {
               disabled={cart.length === 0 || busy}
             >
               Sonunu sil
+            </button>
+            <button
+              type="button"
+              className={`btn remove-arm${removeArmed ? " active" : ""}`}
+              onClick={toggleRemoveArm}
+              disabled={!canArmRemove}
+              aria-pressed={removeArmed}
+            >
+              Ürün iptal <kbd>F4</kbd>
             </button>
             <button
               type="button"
