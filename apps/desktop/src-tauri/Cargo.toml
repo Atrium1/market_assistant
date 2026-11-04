@@ -16,13 +16,21 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "0.32", features = ["bundled", "backup"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 thiserror = "2"
 parking_lot = "0.12"
 argon2 = "0.5"
 rand_core = { version = "0.6", features = ["std"] }
+tauri-plugin-dialog = "2"
+calamine = "0.38"
+csv = "1"
+encoding_rs = "0.8"
+rust_xlsxwriter = "0.102"
+
+[dev-dependencies]
+tempfile = "3"
 
 [profile.release]
 codegen-units = 1

@@ -17,6 +17,10 @@ const MIGRATIONS: &[Migration] = &[
     },
 ];
 
+pub fn known_versions() -> Vec<&'static str> {
+    MIGRATIONS.iter().map(|m| m.version).collect()
+}
+
 pub fn run(conn: &Connection) -> AppResult<()> {
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS schema_migrations (

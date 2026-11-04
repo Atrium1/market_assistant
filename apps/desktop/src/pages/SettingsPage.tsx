@@ -1,5 +1,6 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useOwnerSession } from "../auth/OwnerSessionContext";
+import { BackupCard } from "../components/BackupCard";
 import { api } from "../lib/api";
 
 export function SettingsPage() {
@@ -179,6 +180,8 @@ export function SettingsPage() {
 
       {error && <p className="flash error">{error}</p>}
       {message && <p className="flash ok">{message}</p>}
+
+      <BackupCard />
     </div>
   );
 }

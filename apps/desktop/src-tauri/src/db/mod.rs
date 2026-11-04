@@ -1,5 +1,7 @@
 mod migrate;
 
+pub use migrate::{known_versions, run as run_migrations};
+
 use crate::auth::session::OwnerSession;
 use crate::error::{AppError, AppResult};
 use parking_lot::Mutex;
@@ -14,7 +16,6 @@ pub const DEFAULT_STORE_NAME: &str = "Varsayılan Market";
 pub struct AppState {
     pub conn: Arc<Mutex<Connection>>,
     pub store_id: String,
-    #[allow(dead_code)]
     pub db_path: PathBuf,
     pub owner_session: Arc<Mutex<Option<OwnerSession>>>,
 }
@@ -47,7 +48,7 @@ pub fn open_and_migrate(db_path: PathBuf) -> AppResult<AppState> {
     })
 }
 
-fn seed_default_store(conn: &Connection) -> AppResult<()> {
+pub fn seed_default_store(conn: &Connection) -> AppResult<()> {
     let now = chrono::Utc::now().to_rfc3339();
     conn.execute(
         "INSERT OR IGNORE INTO stores (id, name, created_at) VALUES (?1, ?2, ?3)",

@@ -1,7 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  BackupInfo,
+  BackupSummary,
   CheckoutItemInput,
   CheckoutResult,
+  ImportPreview,
+  ImportResult,
   Product,
   SessionStatus,
   SettingsPublic,
@@ -67,4 +71,27 @@ export const api = {
     password: string;
     password_confirm: string;
   }) => call<void>("settings_set_owner_credentials", { input }),
+
+  backupInfo: () => call<BackupInfo>("backup_info"),
+
+  backupCreate: (destPath: string) =>
+    call<void>("backup_create", { destPath }),
+
+  backupInspect: (srcPath: string) =>
+    call<BackupSummary>("backup_inspect", { srcPath }),
+
+  backupRestore: (srcPath: string) =>
+    call<BackupSummary>("backup_restore", { srcPath }),
+
+  productsImportPreview: (path: string) =>
+    call<ImportPreview>("products_import_preview", { path }),
+
+  productsImportApply: (path: string) =>
+    call<ImportResult>("products_import_apply", { path }),
+
+  productsExport: (destPath: string) =>
+    call<number>("products_export", { destPath }),
+
+  productsExportTemplate: (destPath: string) =>
+    call<void>("products_export_template", { destPath }),
 };

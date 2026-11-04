@@ -31,7 +31,8 @@ pub fn products_create(
     require_owner(&state)?;
     validate_create(&input).map_err(AppError::Message)?;
     let conn = state.conn.lock();
-    ProductRepo::create(&conn, &state.store_id, &input)
+    let (product, _) = ProductRepo::upsert_by_barcode(&conn, &state.store_id, &input, true)?;
+    Ok(product)
 }
 
 #[tauri::command]

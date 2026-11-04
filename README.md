@@ -7,8 +7,9 @@ Küçük marketler için Windows masaüstü uygulaması: barkod ile fiyat bakma,
 ## Özellikler (V1)
 
 - **Kasa:** Satış / Fiyat sor / İade (placeholder) — giriş gerekmez
-- **Ürünler:** çalışanlar listeyi görür; ekle/sil/fiyat için **Düzenleme modu** + sahip girişi
-- **Ayarlar:** mağaza adı ve dükkan kullanıcı adı/şifresi (sahip oturumu gerekir)
+- **Ürünler:** çalışanlar listeyi görür ve ad/barkod ile arar; ekle/sil/fiyat için **Düzenleme modu** + sahip girişi
+- **Toplu işlemler:** Excel/CSV’den ürün içe aktarma (önizlemeli), Excel’e dışa aktarma, boş şablon
+- **Ayarlar:** mağaza adı, dükkan kullanıcı adı/şifresi, **yedekleme / geri yükleme** (sahip oturumu gerekir)
 - Yerel **SQLite** + migration’lar
 - API sözleşmesi → [`docs/api-contract.md`](docs/api-contract.md)
 
@@ -19,6 +20,32 @@ Küçük marketler için Windows masaüstü uygulaması: barkod ile fiyat bakma,
 - Her kurulumda gömülü **fabrika (kurtarma)** hesabı vardır; dükkan şifresi unutulursa bununla giriş yapıp Ayarlar’dan yeni hesap belirlenir.
 - Dağıtımdan önce [`apps/desktop/src-tauri/src/auth/factory.rs`](apps/desktop/src-tauri/src/auth/factory.rs) içindeki `CHANGE_ME_USER` / `CHANGE_ME_PASS` değerlerini değiştirin. Gerçek sırları herkese açık repoya koymayın.
 - Fabrika hesabı tüm kopyalarda aynıdır (bilinçli kurtarma arka kapısı); sadece sizin bilmeniz gerekir.
+
+## Yedekleme
+
+Tüm ürünler ve satışlar bilgisayarda tek bir dosyadadır. Disk bozulursa veya bilgisayar çalınırsa bu dosya da gider.
+
+- **Otomatik yedek:** uygulama her gün ilk açılışta `backups` klasörüne bir kopya alır (son 7 gün saklanır). Geri yükleme ve içe aktarma öncesinde de otomatik kopya alınır. Bunlar **aynı diskte** durur: yanlışlıkla silme / hatalı içe aktarmaya karşı korur, **disk arızasına karşı korumaz**.
+- **Elle yedek (önerilir):** Ayarlar → Yedekleme → **Yedekle** ile dosyayı haftada bir **USB belleğe** veya başka bir bilgisayara kaydedin.
+- **Geri yükleme:** Ayarlar → **Yedekten geri yükle**. Yedekteki ürün/satış sayısı gösterilir, onaydan sonra mevcut verinin yerine geçer (mevcut veri önce otomatik yedeklenir). Dükkan şifresi de yedekteki hâline döner; unutulduysa fabrika hesabı ile girilir.
+- Yeni bilgisayara taşıma: eski bilgisayarda Yedekle → yeni bilgisayara uygulamayı kurun → Yedekten geri yükle.
+
+## Excel / CSV ile ürün yükleme
+
+Ürünler → Düzenleme modu → **Toplu işlemler**.
+
+1. **Şablon indir** ile örnek Excel dosyasını alın (sütunlar: `Barkod`, `Ürün adı`, `Fiyat`). Örnek satırı silip kendi ürünlerinizi yazın.
+2. **Excel/CSV içe aktar** ile dosyayı seçin. Önce bir önizleme gelir: yeni / güncellenecek / değişmeyen / hatalı satırlar. Hiçbir şey onaylamadan kaydedilmez.
+3. **N ürünü uygula** ile kaydedin. Hatalı satırlar atlanır.
+
+Dikkat edilecekler:
+
+- **Barkod sütununu metin yapın.** Excel uzun sayıları `8,69E+12` gibi bilimsel gösterime çevirir veya baştaki `0`’ları siler. Şablonda bu sütun zaten metin biçimindedir; kendi dosyanızda sütunu seçip *Hücreleri Biçimlendir → Metin* yapın. Bilimsel gösterimli barkodlar hatalı sayılır.
+- Fiyat `12,50`, `12.50`, `1.234,50` veya `₺12,50` olabilir.
+- Aynı barkod dosyada iki kez geçerse iki satır da hatalı sayılır.
+- Daha önce silinmiş bir ürünün barkodu dosyada varsa ürün geri getirilir.
+- Başka programdan alınan CSV dosyaları (`;` veya `,` ayraçlı, Türkçe karakterli) desteklenir.
+- **Dışa aktar** mevcut listeyi aynı biçimde Excel’e yazar; düzenleyip tekrar içe aktarabilirsiniz.
 
 ## Geliştirme (geliştirici)
 

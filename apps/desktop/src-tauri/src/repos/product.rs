@@ -4,7 +4,86 @@ use rusqlite::{Connection, OptionalExtension, params};
 
 pub struct ProductRepo;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UpsertOutcome {
+    Created,
+    Updated,
+    Reactivated,
+}
+
 impl ProductRepo {
+    /// All products of the store, including soft-deleted ones.
+    pub fn list_all(conn: &Connection, store_id: &str) -> AppResult<Vec<Product>> {
+        let mut stmt = conn.prepare(
+            "SELECT id, store_id, barcode, name, price_cents, is_active, created_at, updated_at
+             FROM products
+             WHERE store_id = ?1
+             ORDER BY name COLLATE NOCASE",
+        )?;
+        let rows = stmt.query_map([store_id], map_product)?;
+        let mut products = Vec::new();
+        for row in rows {
+            products.push(row?);
+        }
+        Ok(products)
+    }
+
+    fn find_any_by_barcode(
+        conn: &Connection,
+        store_id: &str,
+        barcode: &str,
+    ) -> AppResult<Option<Product>> {
+        conn.query_row(
+            "SELECT id, store_id, barcode, name, price_cents, is_active, created_at, updated_at
+             FROM products
+             WHERE store_id = ?1 AND barcode = ?2",
+            params![store_id, barcode],
+            map_product,
+        )
+        .optional()
+        .map_err(AppError::from)
+    }
+
+    /// Insert a product, or update + reactivate the row that already owns the barcode.
+    /// With `reject_active`, an existing *active* product is an error instead of an update.
+    pub fn upsert_by_barcode(
+        conn: &Connection,
+        store_id: &str,
+        input: &CreateProductInput,
+        reject_active: bool,
+    ) -> AppResult<(Product, UpsertOutcome)> {
+        let barcode = normalize_barcode(&input.barcode);
+        let Some(existing) = Self::find_any_by_barcode(conn, store_id, &barcode)? else {
+            let product = Self::create(conn, store_id, input)?;
+            return Ok((product, UpsertOutcome::Created));
+        };
+
+        if existing.is_active && reject_active {
+            return Err(AppError::Message("Bu barkod zaten kayıtlı".into()));
+        }
+
+        let now = chrono::Utc::now().to_rfc3339();
+        conn.execute(
+            "UPDATE products
+             SET name = ?1, price_cents = ?2, is_active = 1, updated_at = ?3
+             WHERE id = ?4",
+            params![input.name.trim(), input.price_cents, now, existing.id],
+        )?;
+        conn.execute(
+            "INSERT OR IGNORE INTO inventory (product_id, quantity, low_stock_threshold, updated_at)
+             VALUES (?1, 0, NULL, ?2)",
+            params![existing.id, now],
+        )?;
+
+        let outcome = if existing.is_active {
+            UpsertOutcome::Updated
+        } else {
+            UpsertOutcome::Reactivated
+        };
+        let product = Self::get_by_id(conn, &existing.id)?.ok_or(AppError::NotFound)?;
+        Ok((product, outcome))
+    }
+
     pub fn list_active(conn: &Connection, store_id: &str) -> AppResult<Vec<Product>> {
         let mut stmt = conn.prepare(
             "SELECT id, store_id, barcode, name, price_cents, is_active, created_at, updated_at

@@ -11,6 +11,8 @@ pub enum AppError {
     NotImplemented,
     #[error("Veritabanı hatası: {0}")]
     Db(#[from] rusqlite::Error),
+    #[error("Dosya hatası: {0}")]
+    Io(#[from] std::io::Error),
 }
 
 impl Serialize for AppError {

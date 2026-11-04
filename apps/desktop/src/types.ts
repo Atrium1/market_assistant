@@ -59,3 +59,54 @@ export type SettingsPublic = {
   shop_username: string | null;
   shop_credentials_set: boolean;
 };
+
+export type BackupFile = {
+  name: string;
+  size_bytes: number;
+  modified_at: string | null;
+};
+
+export type BackupInfo = {
+  db_path: string;
+  backup_dir: string;
+  recent: BackupFile[];
+};
+
+export type BackupSummary = {
+  product_count: number;
+  sale_count: number;
+  last_sale_at: string | null;
+  schema_versions: string[];
+};
+
+export type ImportRowKind = "add" | "update" | "unchanged" | "invalid";
+
+export type ImportRow = {
+  row_number: number;
+  kind: ImportRowKind;
+  barcode: string;
+  name: string;
+  price_cents: number | null;
+  old_name: string | null;
+  old_price_cents: number | null;
+  reactivate: boolean;
+  reason: string | null;
+  warning: string | null;
+};
+
+export type ImportPreview = {
+  file_name: string;
+  counts: Record<ImportRowKind, number>;
+  add: ImportRow[];
+  update: ImportRow[];
+  unchanged: ImportRow[];
+  invalid: ImportRow[];
+  truncated: boolean;
+};
+
+export type ImportResult = {
+  added: number;
+  updated: number;
+  reactivated: number;
+  skipped: number;
+};
